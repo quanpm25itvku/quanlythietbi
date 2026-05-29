@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đăng nhập - AssetMaster</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .login-body { display: flex; align-items: center; justify-content: center; height: 100vh; background-color: #FFFDF4; }
+    .login-container { max-width: 400px; width: 100%; background: white; padding: 32px; border-radius: 16px; border: 1px solid #fef08a; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+    .error-box { background-color: #fff5f5; border: 1px solid #fecdd3; color: #be123c; padding: 12px; border-radius: 12px; margin-bottom: 16px; font-size: 14px; text-align: center; font-weight: 500; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body class="login-body">
+
+<div class="login-container">
+  <div id="error-msg" class="error-box hidden"></div>
+
+  <div id="box-login">
+    <h2 style="margin-bottom: 20px;">Đăng Nhập Hệ Thống</h2>
+    <form id="form-login">
+      <input type="email" id="login-email" placeholder="Email của bạn" required style="width:100%; margin-bottom:12px; padding:10px; border-radius:8px; border:1px solid #ddd;">
+      <input type="password" id="login-password" placeholder="Mật khẩu" required style="width:100%; margin-bottom:16px; padding:10px; border-radius:8px; border:1px solid #ddd;">
+      <button type="submit" id="btn-login" class="btn-main" style="width: 100%;">Đăng nhập</button>
+    </form>
+    <p style="margin-top: 15px; font-size: 14px; text-align: center;">
+      Chưa có tài khoản? <a href="#" onclick="chuyenForm('signup')" style="color: #2563eb; font-weight: 600;">Đăng ký ngay</a>
+    </p>
+  </div>
+
+  <div id="box-signup" class="hidden">
+    <h2 style="margin-bottom: 5px;">Đăng Ký Tài Khoản</h2>
+    <p style="font-size: 13px; color: #666; margin-bottom: 20px;">Dành cho cán bộ, nhân viên mượn thiết bị</p>
+    <form id="form-signup">
+      <input type="email" id="signup-email" placeholder="Nhập Email của bạn" required style="width:100%; margin-bottom:12px; padding:10px; border-radius:8px; border:1px solid #ddd;">
+      <input type="password" id="signup-password" placeholder="Tạo Mật khẩu (ít nhất 6 ký tự)" required style="width:100%; margin-bottom:16px; padding:10px; border-radius:8px; border:1px solid #ddd;">
+      <button type="submit" id="btn-signup" class="btn-main" style="width: 100%; background-color: #059669;">Tạo tài khoản</button>
+    </form>
+    <p style="margin-top: 15px; font-size: 14px; text-align: center;">
+      Đã có tài khoản? <a href="#" onclick="chuyenForm('login')" style="color: #2563eb; font-weight: 600;">Quay lại Đăng nhập</a>
+    </p>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+  const errorMsg = document.getElementById('error-msg');
+
+  function chuyenForm(loai) {
+    errorMsg.classList.add('hidden');
+    if (loai === 'signup') {
+      document.getElementById('box-login').classList.add('hidden');
+      document.getElementById('box-signup').classList.remove('hidden');
+    } else {
+      document.getElementById('box-login').classList.remove('hidden');
+      document.getElementById('box-signup').classList.add('hidden');
+    }
+  }
+
+  window.addEventListener('DOMContentLoaded', async () => {
+    setTimeout(async () => {
+      if (typeof window.supabase === 'undefined') return;
+      const { data: { session } } = await window.supabase.auth.getSession();
+      if (session && session.user) {
+        window.location.href = session.user.email === "quanpm.25it@vku.udn.vn" ? 'index.html' : 'client.html';
+      }
+    }, 100);
+  });
+
+  document.getElementById('form-login').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    const btn = document.getElementById('btn-login');
+
+    errorMsg.classList.add('hidden');
+    btn.innerText = 'Đang xử lý...';
+    btn.disabled = true;
+
+    const { data, error } = await window.supabase.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      errorMsg.innerText = error.message === "Invalid login credentials" ? "Email hoặc mật khẩu không đúng!" : error.message;
+      errorMsg.classList.remove('hidden');
+      btn.innerText = 'Đăng nhập';
+      btn.disabled = false;
+    } else {
+      window.location.href = data.user.email === "quanpm.25it@vku.udn.vn" ? 'index.html' : 'client.html';
+    }
+  });
+
+  document.getElementById('form-signup').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('signup-email').value.trim();
+    const password = document.getElementById('signup-password').value;
+    const submitBtn = e.submitter;
+
+    errorMsg.classList.add('hidden');
+    submitBtn.innerText = 'Đang đăng ký...';
+    submitBtn.disabled = true;
+
+    const { error } = await window.supabase.auth.signUp({
+      email: email,
+      password: password,
+      options: { emailRedirectTo: window.location.origin }
+    });
+
+    if (error) {
+      errorMsg.innerText = error.message;
+      errorMsg.classList.remove('hidden');
+    } else {
+      alert("Đăng ký tài khoản thành công!");
+      chuyenForm('login');
+    }
+    submitBtn.innerText = 'Tạo tài khoản';
+    submitBtn.disabled = false;
+  });
+</script>
+</body>
+</html>

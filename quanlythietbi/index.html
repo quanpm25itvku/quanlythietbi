@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AssetMaster - Hệ thống Quản lý Thiết bị</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top-navbar">
+  <div class="nav-container">
+    <div class="nav-left" onclick="showSection('home')">
+      <div class="logo-box">💡</div>
+      <span class="logo-text">AssetMaster</span>
+    </div>
+    <nav class="nav-center" id="navCenter">
+      <a href="#" onclick="showSection('home')">Trang chủ</a>
+      <a href="#" onclick="showSection('dashboard')">Bảng điều khiển</a>
+      <a href="#" onclick="moModal()">Thêm thiết bị</a>
+    </nav>
+    <div class="nav-right">
+      <button class="menu-toggle" onclick="toggleMobileMenu()">☰</button>
+      <div class="search-bar">
+        <input type="text" id="global-search" placeholder="Tìm nhanh thiết bị...">
+        <button class="btn-search-icon"></button>
+      </div>
+      <div class="user-profile">
+        <span id="user-email">Đang tải...</span>
+        <button onclick="dangXuat()" class="btn-logout-mini">🚪</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="app-content">
+  <section id="section-home" class="hero-section">
+    <div class="hero-container">
+      <div class="hero-text">
+        <h1 class="hero-title">Hệ thống quản lý <br><span>trang thiết bị AssetMaster</span></h1>
+        <p class="hero-desc">Tối ưu hóa nguồn lực doanh nghiệp, theo dõi trạng thái thiết bị thời gian thực và tự động hóa quy trình quản lý tài sản.</p>
+        <div class="hero-btns">
+          <button class="btn-main" onclick="showSection('dashboard')">Vào bảng điều khiển ➔</button>
+          <button class="btn-sub" onclick="moModal()">+ Thêm thiết bị mới</button>
+        </div>
+      </div>
+      <div class="hero-image">
+        <img src="https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=600&q=80" alt="Asset Management Illustration">
+      </div>
+    </div>
+  </section>
+
+  <section id="section-dashboard" class="dashboard-section hidden">
+    <div class="stats-grid">
+      <div class="stat-card card-total">
+        <p class="stat-label">Tổng thiết bị</p>
+        <p id="stat-total" class="stat-number">--</p>
+      </div>
+      <div class="stat-card card-ready">
+        <p class="stat-label">Sẵn sàng</p>
+        <p id="stat-ready" class="stat-number">--</p>
+      </div>
+      <div class="stat-card card-borrowed">
+        <p class="stat-label">Đang cho mượn</p>
+        <p id="stat-borrowed" class="stat-number">--</p>
+      </div>
+      <div class="stat-card card-broken">
+        <p class="stat-label">Đang hỏng</p>
+        <p id="stat-broken" class="stat-number">--</p>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <div class="table-header">
+        <h3>Danh sách chi tiết trang thiết bị</h3>
+      </div>
+      <div class="table-wrapper table-responsive">
+        <table>
+          <thead>
+          <tr>
+            <th>Mã TB</th>
+            <th>Tên thiết bị</th>
+            <th>Loại</th>
+            <th>Vị trí</th>
+            <th>Trạng thái</th>
+            <th style="text-align: center;">Hành động</th>
+          </tr>
+          </thead>
+          <tbody id="equipment-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="main-footer">
+  <div class="footer-content">
+    <div class="footer-links">
+      <p>Hệ thống quản lý và mượn trả thiết bị.</p>
+      <span>•</span>
+      <span>Liên hệ : quanpm.25it@vku.udn.vn</span>
+    </div>
+  </div>
+</footer>
+
+<div id="modal-them" class="modal hidden">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Thêm Thiết Bị Mới</h3>
+      <button onclick="dongModal()" class="btn-close">&times;</button>
+    </div>
+    <form id="form-thiet-bi" class="modal-form">
+      <div class="form-group">
+        <label>Mã thiết bị</label>
+        <input type="text" id="input-ma" required placeholder="Ví dụ: TB004">
+      </div>
+      <div class="form-group">
+        <label>Tên thiết bị</label>
+        <input type="text" id="input-ten" required placeholder="Ví dụ: Chuột Logitech G502">
+      </div>
+      <div class="form-group">
+        <label>Loại</label>
+        <input type="text" id="input-loai" required placeholder="Ví dụ: Phụ kiện, Laptop...">
+      </div>
+      <div class="form-group">
+        <label>Vị trí</label>
+        <input type="text" id="input-vi-tri" required placeholder="Ví dụ: Phòng 102">
+      </div>
+      <div class="form-group">
+        <label>Trạng thái ban đầu</label>
+        <select id="input-trang-thai" style="width: 100%; padding: 10px; background-color: rgba(254, 249, 231, 0.2); border: 1px solid #fde047; border-radius: 12px; outline: none; cursor: pointer;">
+          <option value="Sẵn sàng">🟢 Sẵn sàng</option>
+          <option value="Đang cho mượn">🔵 Đang cho mượn</option>
+          <option value="Đang hỏng">🔴 Đang hỏng</option>
+        </select>
+      </div>
+      <div class="form-actions">
+        <button type="button" onclick="dongModal()" class="btn-cancel">Hủy</button>
+        <button type="submit" class="btn-save">Lưu lại</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="modal-sua" class="modal hidden">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Chỉnh Sửa Thông Tin Thiết Bị</h3>
+      <button onclick="dongModalSua()" class="btn-close">&times;</button>
+    </div>
+    <form id="form-sua-thiet-bi" class="modal-form">
+      <input type="hidden" id="edit-id">
+      <div class="form-group">
+        <label>Mã thiết bị</label>
+        <input type="text" id="edit-ma" required>
+      </div>
+      <div class="form-group">
+        <label>Tên thiết bị</label>
+        <input type="text" id="edit-ten" required>
+      </div>
+      <div class="form-group">
+        <label>Loại</label>
+        <input type="text" id="edit-loai" required>
+      </div>
+      <div class="form-group">
+        <label>Vị trí</label>
+        <input type="text" id="edit-vi-tri" required>
+      </div>
+      <div class="form-group">
+        <label>Trạng thái</label>
+        <select id="edit-trang-thai" style="width: 100%; padding: 10px; background-color: rgba(254, 249, 231, 0.2); border: 1px solid #fde047; border-radius: 12px; outline: none; cursor: pointer;">
+          <option value="Sẵn sàng">🟢 Sẵn sàng</option>
+          <option value="Đang cho mượn">🔵 Đang cho mượn</option>
+          <option value="Đang hỏng">🔴 Đang hỏng</option>
+        </select>
+      </div>
+      <div class="form-actions">
+        <button type="button" onclick="dongModalSua()" class="btn-cancel">Hủy</button>
+        <button type="submit" class="btn-update">Cập nhật</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

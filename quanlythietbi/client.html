@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AssetMaster - Cổng Người Mượn</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top-navbar">
+  <div class="nav-container">
+    <div class="nav-left">
+      <div class="logo-box">🤝</div>
+      <span class="logo-text">AssetMaster - Client</span>
+    </div>
+    <div class="nav-right">
+      <div class="search-bar">
+        <input type="text" id="client-search" placeholder="Tìm thiết bị muốn mượn...">
+      </div>
+      <div class="user-profile">
+        <span id="user-email">Đang tải...</span>
+        <button onclick="dangXuat()" class="btn-logout-mini">🚪</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="app-content">
+  <section class="dashboard-section">
+    <div class="table-container">
+      <div class="table-header">
+        <h3>Danh sách thiết bị có sẵn trong kho</h3>
+        <p style="font-size: 13px; color: #666; margin-top: 4px;">Chọn thiết bị bạn cần và nhấn nút "Mượn thiết bị"</p>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+          <tr>
+            <th>Mã TB</th>
+            <th>Tên thiết bị</th>
+            <th>Loại</th>
+            <th>Vị trí kho</th>
+            <th>Trạng thái</th>
+            <th style="text-align: center;">Hành động</th>
+          </tr>
+          </thead>
+          <tbody id="client-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+  const SUPABASE_URL = "https://vogwnclvqrekjcrdotgh.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_HzbZ0eaKqZqumOIV7OOiog_RUtf3ql6";
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  document.addEventListener('DOMContentLoaded', () => {
+    checkUserSession();
+    taiThietBiMuyen();
+  });
+
+  async function checkUserSession() {
+    const { data: { session }, error } = await supabaseClient.auth.getSession();
+    if (!session || error) {
+      window.location.href = 'login.html';
+    } else {
+      document.getElementById('user-email').innerText = session.user.email;
+    }
+  }
+
+  async function dangXuat() {
+    await supabaseClient.auth.signOut();
+    window.location.href = 'login.html';
+  }
+
+  async function taiThietBiMuyen() {
+    const tableBody = document.getElementById('client-table-body');
+    tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Đang kiểm tra kho thiết bị...</td></tr>`;
+
+    const { data: danhSach, error } = await supabaseClient
+      .from('thiet_bi')
+      .select('*')
+      .eq('trang_thai', 'Sẵn sàng')
+      .order('ma_tb', { ascending: true });
+
+    if (error) {
+      tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:red;">Lỗi: ${error.message}</td></tr>`;
+      return;
+    }
+
+    if (danhSach.length === 0) {
+      tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#666;">Hiện tại tất cả thiết bị đã được mượn hoặc đang bảo trì.</td></tr>`;
+      return;
+    }
+
+    tableBody.innerHTML = '';
+    danhSach.forEach(tb => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+      <td><strong>${tb.ma_tb}</strong></td>
+      <td>${tb.ten_tb}</td>
+      <td>${tb.loai_tb || '-'}</td>
+      <td>${tb.vi_tri || '-'}</td>
+      <td><span style="background-color: #ecfdf5; color: #047857; padding: 6px 12px; border-radius: 8px; font-size:12px; font-weight:600;">🟢 Sẵn sàng</span></td>
+      <td style="text-align: center;">
+        <button onclick="muonThietBi('${tb.id}', '${tb.ten_tb}')" style="background-color: #2563eb; color: white; border: none; padding: 6px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;">➔ Mượn thiết bị</button>
+      </td>
+    `;
+      tableBody.appendChild(tr);
+    });
+  }
+
+  async function muonThietBi(id, tenTB) {
+    if (confirm(`Bạn có chắc chắn muốn mượn thiết bị: ${tenTB}?`)) {
+      const { error } = await supabaseClient
+        .from('thiet_bi')
+        .update({ "trang_thai": "Đang cho mượn" })
+        .eq('id', id);
+
+      if (error) {
+        alert("Không thể mượn thiết bị: " + error.message);
+      } else {
+        alert(`Đăng ký mượn thành công thiết bị: ${tenTB}!`);
+        await taiThietBiMuyen();
+      }
+    }
+  }
+
+  document.getElementById('client-search')?.addEventListener('input', function(e) {
+    const keyword = e.target.value.toLowerCase().trim();
+    document.querySelectorAll('#client-table-body tr').forEach(row => {
+      if (row.cells.length < 2) return;
+      const match = Array.from(row.cells).slice(0, 4).some(cell => cell.textContent.toLowerCase().includes(keyword));
+      row.style.display = match ? '' : 'none';
+    });
+  });
+</script>
+</body>
+</html>
